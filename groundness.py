@@ -203,9 +203,9 @@ if prompt := st.chat_input("Ask a question!"):
 
     print(response.choices[0].message.content)
     if response.choices[0].message.content == "grounded":
-        st.caption('LLM이 생성한 답변은 Groundness Check를 :blue[통과했습니다.]')
+        st.caption('LLM이 생성한 답변은 Groundedness Check를 :blue[통과했습니다.]')
     else:
-        st.caption('LLM이 생성한 답변은 Groundness Check를 :red[통과하지 못했습니다.]')
+        st.caption('LLM이 생성한 답변은 Groundedness Check를 :red[통과하지 못했습니다.]')
 
 
 print("_______________________")
