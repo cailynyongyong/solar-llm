@@ -157,9 +157,7 @@ MAX_MESSAGES_BEFORE_DELETION = 2
 if prompt := st.chat_input("Ask a question!"):
     
 # 유저가 보낸 질문이면 유저 아이콘과 질문 보여주기
-     # 만약 현재 저장된 대화 내용 기록이 4개보다 많으면 자르기
-   
-    st.session_state.messages.append({"role": "user", "content": prompt})
+
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -169,6 +167,11 @@ if prompt := st.chat_input("Ask a question!"):
         full_response = ""
 
         result = rag_chain.invoke({"input": prompt, "chat_history": st.session_state.messages})
+
+        # 사용자 질문과 검색한 내용 context 합쳐서 같이 user message content에 넣어주기
+        context_text = " ".join([doc.page_content for doc in result["context"]])
+        full_text = prompt + " " + context_text
+        st.session_state.messages.append({"role": "user", "content": full_text})
 
         # 증거자료 보여주기
         with st.expander("Evidence context"):
