@@ -2,7 +2,7 @@ import requests
 import sqlite3
 
 # Your existing code to call the API
-api_key = "up_jGs3Xv2gvZuCBAb2OaTfhW3YiOZyH"  # Replace with your API key
+api_key = "UPSTAGE_API_KEY"  # Replace with your API key
 filename = "receipt3.jpeg"  # Replace with any other document
 model = "receipt-extraction"  # Replace with any other model
 

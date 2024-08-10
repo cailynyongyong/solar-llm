@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS items (
 ''')
 
 # Define the API key and model
-api_key = "up_jGs3Xv2gvZuCBAb2OaTfhW3YiOZyH"  # Replace with your API key
+api_key = "UPSTAGE_API_KEY"  # Replace with your API key
 model = "receipt-extraction"  # Replace with any other model
 url = "https://api.upstage.ai/v1/document-ai/extraction"
 headers = {"Authorization": f"Bearer {api_key}"}
