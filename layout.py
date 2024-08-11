@@ -1,9 +1,12 @@
 import requests
 import sqlite3
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Your existing code to call the API
-api_key = "UPSTAGE_API_KEY"  # Replace with your API key
-filename = "receipt3.jpeg"  # Replace with any other document
+api_key = os.getenv("UPSTAGE_API_KEY")  # Replace with your API key
+filename = "receipts/receipt3.jpeg"  # Replace with any other document
 model = "receipt-extraction"  # Replace with any other model
 
 url = "https://api.upstage.ai/v1/document-ai/extraction"
@@ -14,7 +17,7 @@ response = requests.post(url, headers=headers, files=files, data=data)
 
 # Parse the JSON response
 extracted_data = response.json()
-# print(extracted_data)  # Print to inspect the JSON structure
+print(extracted_data)  # Print to inspect the JSON structure
 
 # Initialize variables for receipt and items data
 merchant_name = None
@@ -67,7 +70,7 @@ for field in extracted_data['fields']:
 
 print(items)
 # Set up the database connection
-conn = sqlite3.connect('receipts.db')
+conn = sqlite3.connect('receipt.db')
 cursor = conn.cursor()
 
 # Create tables if they don't exist

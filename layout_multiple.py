@@ -1,6 +1,8 @@
 import os
 import requests
 import sqlite3
+from dotenv import load_dotenv
+load_dotenv()
 
 # Set up database connection
 conn = sqlite3.connect('receipts_multiple.db')
@@ -33,7 +35,7 @@ CREATE TABLE IF NOT EXISTS items (
 ''')
 
 # Define the API key and model
-api_key = "UPSTAGE_API_KEY"  # Replace with your API key
+api_key = os.getenv("UPSTAGE_API_KEY")  # Replace with your API key
 model = "receipt-extraction"  # Replace with any other model
 url = "https://api.upstage.ai/v1/document-ai/extraction"
 headers = {"Authorization": f"Bearer {api_key}"}
