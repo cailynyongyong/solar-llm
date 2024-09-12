@@ -9,6 +9,13 @@ import tempfile
 from langchain_upstage import UpstageEmbeddings
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
+from openai import OpenAI
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_upstage import ChatUpstage
+from langchain.tools.retriever import create_retriever_tool
+
+os.environ["TAVILY_API_KEY"] = os.getenv("TAVILY_API_KEY")
+os.environ["SERPAPI_API_KEY"] = os.getenv("SERPAPI_API_KEY")
 
 if "id" not in st.session_state:
     st.session_state.id = uuid.uuid4()
@@ -45,13 +52,11 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Choose your `.pdf` file", type="pdf")
 
     if uploaded_file:
-        print(uploaded_file)
         try:
             file_key = f"{session_id}-{uploaded_file.name}"
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 file_path = os.path.join(temp_dir, uploaded_file.name)
-                print("file path:", file_path)
                 
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getvalue())
@@ -62,7 +67,6 @@ with st.sidebar:
                 if file_key not in st.session_state.get('file_cache', {}):
 
                     if os.path.exists(temp_dir):
-                            print("temp_dir:", temp_dir)
                             loader = PyPDFLoader(
                                 file_path
                             )
@@ -79,59 +83,13 @@ with st.sidebar:
                     from langchain_upstage import ChatUpstage
                     from langchain_core.messages import HumanMessage, SystemMessage
 
-                    chat = ChatUpstage(upstage_api_key=os.getenv("UPSTAGE_API_KEY"), model="solar-pro")
+                    chat = ChatUpstage(upstage_api_key=os.getenv("UPSTAGE_API_KEY"))
 
-                    # 1) 챗봇에 '기억'을 입히기 위한 첫번째 단계 
-
-                    # 이전의 메시지들과 최신 사용자 질문을 분석해, 문맥에 대한 정보가 없이 혼자서만 봤을때 이해할 수 있도록 질문을 다시 구성함
-                    # 즉 새로 들어온 그 질문 자체에만 집중할 수 있도록 다시 재편성
-                    from langchain.chains import create_history_aware_retriever
-                    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-
-                    contextualize_q_system_prompt = """이전 대화 내용과 최신 사용자 질문이 있을 때, 이 질문이 이전 대화 내용과 관련이 있을 수 있습니다. 
-                    이런 경우, 대화 내용을 알 필요 없이 독립적으로 이해할 수 있는 질문으로 바꾸세요. 
-                    질문에 답할 필요는 없고, 필요하다면 그저 다시 구성하거나 그대로 두세요."""
-
-                    # MessagesPlaceholder: 'chat_history' 입력 키를 사용하여 이전 메세지 기록들을 프롬프트에 포함시킴.
-                    # 즉 프롬프트, 메세지 기록 (문맥 정보), 사용자의 질문으로 프롬프트가 구성됨. 
-                    contextualize_q_prompt = ChatPromptTemplate.from_messages(
-                        [
-                            ("system", contextualize_q_system_prompt),
-                            MessagesPlaceholder("chat_history"),
-                            ("human", "{input}"),
-                        ]
+                    retriever_tool = create_retriever_tool(
+                        retriever,
+                        "solar_search",
+                        "Searches any questions related to Solar. Always use this tool when user query is related to Solar!",
                     )
-
-                    # 이를 토대로 메세지 기록을 기억하는 retriever를 생성합니다.
-                    history_aware_retriever = create_history_aware_retriever(
-                        chat, retriever, contextualize_q_prompt
-                    )
-
-                    # 2) 두번째 단계로, 방금 전 생성한 체인을 사용하여 문서를 불러올 수 있는 retriever 체인을 생성합니다.
-                    from langchain.chains import create_retrieval_chain
-                    from langchain.chains.combine_documents import create_stuff_documents_chain
-
-                    qa_system_prompt = """질문-답변 업무를 돕는 보조원입니다. 
-                    질문에 답하기 위해 검색된 내용을 사용하세요. 
-                    답을 모르면 모른다고 말하세요. 
-                    답변은 세 문장 이내로 간결하게 유지하세요.
-
-                    ## 답변 예시
-                    📍답변 내용: 
-
-                    {context}"""
-                    qa_prompt = ChatPromptTemplate.from_messages(
-                        [
-                            ("system", qa_system_prompt),
-                            MessagesPlaceholder("chat_history"),
-                            ("human", "{input}"),
-                        ]
-                    )
-
-                    question_answer_chain = create_stuff_documents_chain(chat, qa_prompt)
-
-                    # 결과값은 input, chat_history, context, answer 포함함.
-                    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
                 st.success("Ready to Chat!")
                 display_pdf(uploaded_file)
@@ -140,7 +98,7 @@ with st.sidebar:
             st.stop()     
 
 # 웹사이트 제목
-st.title("Solar LLM Chatbot")
+st.title("Chatbot with Tools")
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
@@ -159,6 +117,7 @@ MAX_MESSAGES_BEFORE_DELETION = 4
 
 # 웹사이트에서 유저의 인풋을 받고 위에서 만든 AI 에이전트 실행시켜서 답변 받기
 if prompt := st.chat_input("Ask a question!"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     
 # 유저가 보낸 질문이면 유저 아이콘과 질문 보여주기
      # 만약 현재 저장된 대화 내용 기록이 4개보다 많으면 자르기
@@ -166,8 +125,7 @@ if prompt := st.chat_input("Ask a question!"):
         # Remove the first two messages
         del st.session_state.messages[0]
         del st.session_state.messages[0]  
-   
-    st.session_state.messages.append({"role": "user", "content": prompt})
+
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -176,13 +134,37 @@ if prompt := st.chat_input("Ask a question!"):
         message_placeholder = st.empty()
         full_response = ""
 
-        result = rag_chain.invoke({"input": prompt, "chat_history": st.session_state.messages})
+        tavily_tool = TavilySearchResults()
 
-        # 증거자료 보여주기
-        with st.expander("Evidence context"):
-            st.write(result["context"])
+        from langchain_community.utilities import SerpAPIWrapper
+        
+        params = {
+            "engine": "naver",
+            "query": prompt,
+            "hl": "ko",
+        }
+        search = SerpAPIWrapper(params=params)
 
-        for chunk in result["answer"].split(" "):
+        from langchain_core.tools import Tool
+
+        naver_tool = Tool(
+            name="naver_search",
+            description="Use Naver search engine",
+            func=search.run,
+        )
+
+        tools = [tavily_tool, retriever_tool, naver_tool]
+
+        from langchain.agents import AgentExecutor, create_tool_calling_agent
+        from langchain import hub
+
+        prompt = hub.pull("hwchase17/openai-tools-agent")
+        agent = create_tool_calling_agent(chat, tools, prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools)
+
+        result = agent_executor.invoke({"input": prompt, "chat_history": st.session_state.messages})
+
+        for chunk in result["output"].split(" "):
             full_response += chunk + " "
             time.sleep(0.2)
             message_placeholder.markdown(full_response + "▌")

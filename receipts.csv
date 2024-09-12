@@ -1,0 +1,2 @@
+id,merchant_name,branch_name,store_address,store_phone,payment_method,subtotal,tax_rate,tax_amount,total_amount
+3,STARBUCKS,Store #14054,"6768 W. 95th Street Oak Lawn, IL",(708) 430-8903,Visa,12.55,9.75%,1.22,13.77
