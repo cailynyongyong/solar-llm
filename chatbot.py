@@ -79,7 +79,7 @@ with st.sidebar:
                     from langchain_upstage import ChatUpstage
                     from langchain_core.messages import HumanMessage, SystemMessage
 
-                    chat = ChatUpstage(upstage_api_key=os.getenv("UPSTAGE_API_KEY"), model="solar-pro")
+                    chat = ChatUpstage(upstage_api_key=os.getenv("UPSTAGE_API_KEY"))
 
                     # 1) 챗봇에 '기억'을 입히기 위한 첫번째 단계 
 
@@ -118,6 +118,7 @@ with st.sidebar:
 
                     ## 답변 예시
                     📍답변 내용: 
+                    📍증거: 
 
                     {context}"""
                     qa_prompt = ChatPromptTemplate.from_messages(
